@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Watchlist - Movies, Series, Anime</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+  <div class="max-w-5xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6 text-center">🎬 My Watchlist</h1>
+
+    <div class="flex gap-4 mb-4">
+      <input id="searchInput" type="text" placeholder="Enter title..." class="flex-1 p-2 border rounded" />
+      <select id="categorySelect" class="p-2 border rounded">
+        <option value="Movie">Movie</option>
+        <option value="Anime">Anime</option>
+        <option value="Action">Action</option>
+        <option value="Comedy">Comedy</option>
+        <option value="Drama">Drama</option>
+        <option value="Romance">Romance</option>
+      </select>
+      <button onclick="addToList()" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+    </div>
+
+    <div id="watchlist" class="space-y-4"></div>
+
+    <h2 class="text-xl font-semibold mt-10">Compare Titles</h2>
+    <div class="flex gap-4 mb-4 mt-2">
+      <input id="compare1" type="text" placeholder="Title 1" class="flex-1 p-2 border rounded" />
+      <input id="compare2" type="text" placeholder="Title 2" class="flex-1 p-2 border rounded" />
+      <button onclick="compareItems()" class="bg-green-600 text-white px-4 py-2 rounded">Compare</button>
+    </div>
+    <div id="comparisonResult" class="mt-4"></div>
+  </div>
+
+  <script>
+    async function fetchDetails(title) {
+      const OMDB_API_KEY = "13d38034"; // Replace with your OMDb key
+      const isAnime = title.toLowerCase().includes("anime");
+
+      if (isAnime) {
+        try {
+          const res = await fetch(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(title)}&limit=1`);
+          const data = await res.json();
+          const anime = data.data?.[0];
+
+          if (!anime) throw new Error("Anime not found");
+
+          return {
+            name: anime.title,
+            date: anime.aired?.from?.split("T")[0] || "N/A",
+            description: anime.synopsis || "No description.",
+            category: "Anime",
+            status: anime.status || "Unknown",
+            imdb: anime.score || "N/A"
+          };
+        } catch (err) {
+          alert("Error fetching anime data");
+        }
+      } else {
+        try {
+          const res = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(title)}&apikey=${OMDB_API_KEY}`);
+          const data = await res.json();
+
+          if (data.Response === "False") throw new Error("Not found");
+
+          return {
+            name: data.Title,
+            date: data.Released || "N/A",
+            description: data.Plot || "No description available.",
+            category: data.Type === "series" ? "Web Series" : "Movie",
+            status: data.totalSeasons ? "Ongoing" : "Ended",
+            imdb: data.imdbRating || "N/A"
+          };
+        } catch (err) {
+          alert("Error fetching movie data");
+        }
+      }
+
+      return {
+        name: title,
+        date: "N/A",
+        description: "Not available",
+        category: "N/A",
+        status: "N/A",
+        imdb: "N/A"
+      };
+    }
+
+    async function addToList() {
+      const title = document.getElementById("searchInput").value;
+      const category = document.getElementById("categorySelect").value;
+      if (!title) return;
+
+      const details = await fetchDetails(title);
+      details.category = category;  // Manually set the category
+
+      const itemHTML = `
+        <div class="bg-white p-4 rounded shadow flex justify-between items-start">
+          <div>
+            <h3 class="text-xl font-semibold">${details.name}</h3>
+            <p><strong>Release Date:</strong> ${details.date}</p>
+            <p><strong>Description:</strong> ${details.description}</p>
+            <p><strong>Category:</strong> ${details.category}</p>
+            <p><strong>Status:</strong> ${details.status}</p>
+            <p><strong>IMDb Rating:</strong> ${details.imdb}</p>
+          </div>
+          <button onclick="removeFromList(this)" class="bg-red-500 text-white px-4 py-2 rounded">Remove</button>
+        </div>
+      `;
+      document.getElementById("watchlist").insertAdjacentHTML("beforeend", itemHTML);
+      document.getElementById("searchInput").value = "";
+    }
+
+    function removeFromList(button) {
+      // Remove the parent div (which is the whole item)
+      button.parentElement.remove();
+    }
+
+    async function compareItems() {
+      const t1 = document.getElementById("compare1").value;
+      const t2 = document.getElementById("compare2").value;
+      if (!t1 || !t2) return;
+
+      const d1 = await fetchDetails(t1);
+      const d2 = await fetchDetails(t2);
+
+      document.getElementById("comparisonResult").innerHTML = `
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-white p-4 rounded shadow">
+            <h3 class="text-lg font-bold">${d1.name}</h3>
+            <p>Rating: ${d1.imdb}</p>
+            <p>Status: ${d1.status}</p>
+            <p>Category: ${d1.category}</p>
+          </div>
+          <div class="bg-white p-4 rounded shadow">
+            <h3 class="text-lg font-bold">${d2.name}</h3>
+            <p>Rating: ${d2.imdb}</p>
+            <p>Status: ${d2.status}</p>
+            <p>Category: ${d2.category}</p>
+          </div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
