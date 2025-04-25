@@ -35,6 +35,7 @@
   </div>
 
   <script>
+    // Fetch movie or anime details
     async function fetchDetails(title) {
       const OMDB_API_KEY = "13d38034"; // Replace with your OMDb key
       const isAnime = title.toLowerCase().includes("anime");
@@ -88,6 +89,7 @@
       };
     }
 
+    // Add item to the list
     async function addToList() {
       const title = document.getElementById("searchInput").value;
       const category = document.getElementById("categorySelect").value;
@@ -96,28 +98,50 @@
       const details = await fetchDetails(title);
       details.category = category;  // Manually set the category
 
-      const itemHTML = `
-        <div class="bg-white p-4 rounded shadow flex justify-between items-start">
-          <div>
-            <h3 class="text-xl font-semibold">${details.name}</h3>
-            <p><strong>Release Date:</strong> ${details.date}</p>
-            <p><strong>Description:</strong> ${details.description}</p>
-            <p><strong>Category:</strong> ${details.category}</p>
-            <p><strong>Status:</strong> ${details.status}</p>
-            <p><strong>IMDb Rating:</strong> ${details.imdb}</p>
-          </div>
-          <button onclick="removeFromList(this)" class="bg-red-500 text-white px-4 py-2 rounded">Remove</button>
-        </div>
-      `;
-      document.getElementById("watchlist").insertAdjacentHTML("beforeend", itemHTML);
+      // Save to local storage
+      const watchlist = JSON.parse(localStorage.getItem("watchlist")) || [];
+      watchlist.push(details);
+      localStorage.setItem("watchlist", JSON.stringify(watchlist));
+
+      // Display the list
+      displayList();
       document.getElementById("searchInput").value = "";
     }
 
+    // Remove item from the list
     function removeFromList(button) {
-      // Remove the parent div (which is the whole item)
-      button.parentElement.remove();
+      const watchlist = JSON.parse(localStorage.getItem("watchlist")) || [];
+      const index = button.dataset.index;
+      watchlist.splice(index, 1);
+      localStorage.setItem("watchlist", JSON.stringify(watchlist));
+      displayList(); // Re-display the updated list
     }
 
+    // Display the watchlist from local storage
+    function displayList() {
+      const watchlist = JSON.parse(localStorage.getItem("watchlist")) || [];
+      const watchlistContainer = document.getElementById("watchlist");
+      watchlistContainer.innerHTML = ""; // Clear current list
+
+      watchlist.forEach((item, index) => {
+        const itemHTML = `
+          <div class="bg-white p-4 rounded shadow flex justify-between items-start">
+            <div>
+              <h3 class="text-xl font-semibold">${item.name}</h3>
+              <p><strong>Release Date:</strong> ${item.date}</p>
+              <p><strong>Description:</strong> ${item.description}</p>
+              <p><strong>Category:</strong> ${item.category}</p>
+              <p><strong>Status:</strong> ${item.status}</p>
+              <p><strong>IMDb Rating:</strong> ${item.imdb}</p>
+            </div>
+            <button onclick="removeFromList(this)" data-index="${index}" class="bg-red-500 text-white px-4 py-2 rounded">Remove</button>
+          </div>
+        `;
+        watchlistContainer.insertAdjacentHTML("beforeend", itemHTML);
+      });
+    }
+
+    // Compare items
     async function compareItems() {
       const t1 = document.getElementById("compare1").value;
       const t2 = document.getElementById("compare2").value;
@@ -143,6 +167,9 @@
         </div>
       `;
     }
+
+    // Display the watchlist on page load
+    window.onload = displayList;
   </script>
 </body>
 </html>
